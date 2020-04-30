@@ -15,7 +15,7 @@ async function AI() {
     const numF = ( await trainingData.columnNames() ).length - 1;
     const n = 150;
 
-    const convertedData = trainingData.map(({xs, ys}) => {
+    const convertedData = await trainingData.map(({xs, ys}) => {
         const labels = [
             ys.species === "setosa" ? 1 : 0,
             ys.species === "virginica" ? 1 : 0,
@@ -24,9 +24,11 @@ async function AI() {
         return {xs: Object.values(xs), ys: Object.values(labels)}
     }).batch(10);
 
+    console.log(convertedData)
+
     const model = tf.sequential({
         layers: [
-            tf.layers.dense({inputShape: numF, activation: 'sigmoid', units: 5}),
+            tf.layers.dense({inputShape: [10,numF], activation: 'sigmoid', units: 6}),
             tf.layers.dense({activation: 'softmax', units: 3})
         ]
     });
@@ -69,4 +71,4 @@ async function AI() {
 
 }
 
-AI();
+console.log(AI());
