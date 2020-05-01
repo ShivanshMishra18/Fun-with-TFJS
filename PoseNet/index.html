@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Posenet Experiments</title>
+
+  <!-- Import TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+  <!-- Load Posenet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script>
+  
+</head>
+<body>
+    <video id="video" playsinline style=" -moz-transform: scaleX(-1);
+    -o-transform: scaleX(-1);
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+    ">
+    </video>
+    <canvas id="output" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
+</body>
+
+<!-- Import the main script file -->
+<script src="script.js"></script>
+
+</html>
