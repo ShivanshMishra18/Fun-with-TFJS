@@ -1,5 +1,5 @@
-const videoHeight = 500
-const videoWidth = 500
+const videoHeight = 200
+const videoWidth = 270
 const videoVisibility = true
 const showPoints = true
 const colorLeft = 'blue'
@@ -44,21 +44,44 @@ function drawPoint(ctx, y, x, r, color) {
     ctx.fill();
 }
 
+/*
 function drawKeypoints(keypoints, minConfidence, ctx, scale = 1) {
     let leftWrist = keypoints.find(point => point.part === 'leftWrist');
     let rightWrist = keypoints.find(point => point.part === 'rightWrist');
 
     if (leftWrist.score > minConfidence) {
         const {y, x} = leftWrist.position;
-        drawPoint(ctx, y * scale, x * scale, 10, colorLeft);
+        drawPoint(ctx, y * scale, x * scale, 5, colorLeft);
     }
 
     if (rightWrist.score > minConfidence) {
         const {y, x} = rightWrist.position;
-        drawPoint(ctx, y * scale, x * scale, 10, colorRight);
+        drawPoint(ctx, y * scale, x * scale, 5, colorRight);
     }
 }
+*/
 
+function drawKeypointsLight(keypoints, minConfidence, ctx, scale = 1) {
+  let leftWrist = keypoints.find(point => point.part === 'leftWrist');
+  let rightWrist = keypoints.find(point => point.part === 'rightWrist');
+
+  if (leftWrist.score > minConfidence) {
+      const {y, x} = leftWrist.position;
+      console.log('Success for left');
+      if (showPoints)
+        drawPoint(ctx, y * scale, x * scale, 5, colorLeft);
+  }
+  if (rightWrist.score > minConfidence) {
+      const {y, x} = rightWrist.position;
+      console.log('Success for right');
+      myGameArea.x = x;
+      myGameArea.y = y;
+      if (showPoints)
+        drawPoint(ctx, y * scale, x * scale, 5, colorRight);
+  }
+}
+
+/*
 function detectPoseFromVideo(video, poseNetModel) {
     const canvas = document.getElementById('output');
     const ctx = canvas.getContext('2d');
@@ -95,16 +118,61 @@ function detectPoseFromVideo(video, poseNetModel) {
         if (score >= minPoseConfidence) {
           if (showPoints) {
             drawKeypoints(keypoints, minPartConfidence, ctx);
+            console.log(keypoints);
           }
         }
       });
+      console.log('Requesting frame animation');
       requestAnimationFrame(poseDetectionFrame);
+      console.log('Requested')
     }
   
-	console.log("Detecting");
-	
+	  console.log("Detecting");
     poseDetectionFrame();
+    console.log("Done for once");
+}
+*/
+
+function detectPoseFromVideoLight(video, poseNetModel) {
+  const canvas = document.getElementById('output');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = videoWidth;
+  canvas.height = videoHeight;
+
+  async function poseDetectionFrame() {
+    let poses = [];
+    const minPoseConfidence = 0.1;
+    const minPartConfidence = 0.4;
+
+    const pose = await poseNetModel.estimatePoses(video, {
+      flipHorizontal: true,
+      decodingMethod: 'single-person'
+    });
+
+    poses = poses.concat(pose);
+
+    ctx.clearRect(0, 0, videoWidth, videoHeight);
+
+    if (videoVisibility === true) {     // Put false to turn off player
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.translate(-videoWidth, 0);
+      ctx.restore();
+    }
+
+    poses.forEach(({score, keypoints}) => {
+        // console.log('Trying for ', keypoints)
+        if (score > minPoseConfidence) {
+          drawKeypointsLight(keypoints, minPartConfidence, ctx);
+        }
+    });
+    // console.log('Requesting frame animation');
+    requestAnimationFrame(poseDetectionFrame);
   }
+
+  poseDetectionFrame();
+}
 
 
 async function cameraOn() {    
@@ -114,10 +182,58 @@ async function cameraOn() {
     try {
         video = await setupCamera();
         video.play();
-        detectPoseFromVideo(video,PoseNet);
+        console.log("cameraOn");
+        detectPoseFromVideoLight(video,PoseNet);
+        console.log("cameraOnDone");
     } catch (e) {
         throw e;
     }
 }
 
-cameraOn()
+
+var myGameArea = {
+  canvas : document.createElement("canvas"),
+  start : function() {
+      this.canvas.width = videoWidth;
+      this.canvas.height = videoHeight;
+      this.canvas.style.cursor = "none"; //hide the original cursor
+      this.context = this.canvas.getContext("2d");
+      document.body.appendChild(this.canvas);
+      this.canvas.style.margin = "20px";
+      this.canvas.style.backgroundColor = "#f1f1f1";
+      this.canvas.style.borderColor = '#07070707';
+      this.interval = setInterval(updateGameArea, 20);
+      // this.canvas.addEventListener('mousemove', function (e) {
+      //     myGameArea.x = e.offsetX;
+      //     myGameArea.y = e.offsetY;
+      // })
+  }, 
+  clear : function(){
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+}
+
+function updateGameArea() {
+  myGameArea.clear();
+  if (myGameArea.x && myGameArea.y) {
+      myGamePiece.x = myGameArea.x;
+      myGamePiece.y = myGameArea.y;        
+  }
+  myGamePiece.update();
+}
+
+function component(width, height, color, x, y) {
+  this.width = width;
+  this.height = height;
+  this.x = x;
+  this.y = y;    
+  this.update = function() {
+      ctx = myGameArea.context;
+      ctx.fillStyle = color;
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+myGamePiece = new component(10, 10, "red", 10, 120);
+myGameArea.start()
+// cameraOn()
