@@ -1,5 +1,7 @@
-const videoHeight = 200
-const videoWidth = 270
+var def_H = 270
+var def_W = 480
+const videoHeight = def_H || 200
+const videoWidth = def_W || 270
 const videoVisibility = true
 const showPoints = true
 const colorLeft = 'blue'
@@ -194,14 +196,15 @@ async function cameraOn() {
 var myGameArea = {
   canvas : document.createElement("canvas"),
   start : function() {
-      this.canvas.width = videoWidth;
-      this.canvas.height = videoHeight;
+      this.canvas.width = def_W || videoWidth;
+      this.canvas.height = def_H || videoHeight;
       this.canvas.style.cursor = "none"; //hide the original cursor
       this.context = this.canvas.getContext("2d");
       document.body.appendChild(this.canvas);
       this.canvas.style.margin = "20px";
       this.canvas.style.backgroundColor = "#f1f1f1";
       this.canvas.style.borderColor = '#07070707';
+      this.frameNo = 0;
       this.interval = setInterval(updateGameArea, 20);
       // this.canvas.addEventListener('mousemove', function (e) {
       //     myGameArea.x = e.offsetX;
@@ -210,30 +213,95 @@ var myGameArea = {
   }, 
   clear : function(){
       this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  },
+  stop : function() {
+      clearInterval(this.interval);
   }
 }
 
+// function updateGameArea() {
+//   myGameArea.clear();
+//   if (myGameArea.x && myGameArea.y) {
+//       myGamePiece.x = myGameArea.x;
+//       myGamePiece.y = myGameArea.y;        
+//   }
+//   myGamePiece.update();
+// }
+
+
 function updateGameArea() {
+  var x, height, gap, minHeight, maxHeight, minGap, maxGap;
+  if (myObstacles.length > 15) 
+      myObstacles.splice(0,1);
+  console.log(myObstacles.length)
+  for (i = 0; i < myObstacles.length; i += 1) {
+      if (myGamePiece.crashWith(myObstacles[i])) {
+          myGameArea.stop();
+          return;
+      } 
+  }
   myGameArea.clear();
+  myGameArea.frameNo += 1;
+  if (myGameArea.frameNo == 1 || everyinterval(100)) {
+      x = myGameArea.canvas.width;
+      minHeight = 40;
+      maxHeight = 220;
+      height = Math.floor(Math.random()*(maxHeight-minHeight+1)+minHeight);
+      minGap = 50;
+      maxGap = 200;
+      gap = Math.floor(Math.random()*(maxGap-minGap+1)+minGap);
+      myObstacles.push(new component(10, height, "green", x, 0));
+      myObstacles.push(new component(10, x - height - gap, "green", x, height + gap));
+  }
+  for (i = 0; i < myObstacles.length; i += 1) {
+      myObstacles[i].x += -1;
+      myObstacles[i].update();
+  }
+  // Update for cue
   if (myGameArea.x && myGameArea.y) {
       myGamePiece.x = myGameArea.x;
       myGamePiece.y = myGameArea.y;        
-  }
+  }  
   myGamePiece.update();
 }
+
+
+function everyinterval(n) {
+  if ((myGameArea.frameNo / n) % 1 == 0) {return true;}
+  return false;
+}
+
 
 function component(width, height, color, x, y) {
   this.width = width;
   this.height = height;
   this.x = x;
-  this.y = y;    
+  this.y = y;
+  this.speedX = 0;
+  this.speedY = 0;
   this.update = function() {
       ctx = myGameArea.context;
       ctx.fillStyle = color;
       ctx.fillRect(this.x, this.y, this.width, this.height);
   }
+  this.crashWith = function(otherobj) {
+    var myleft = this.x;
+    var myright = this.x + (this.width);
+    var mytop = this.y;
+    var mybottom = this.y + (this.height);
+    var otherleft = otherobj.x;
+    var otherright = otherobj.x + (otherobj.width);
+    var othertop = otherobj.y;
+    var otherbottom = otherobj.y + (otherobj.height);
+    var crash = true;
+    if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+        crash = false;
+    }
+    return crash;
+  }
 }
 
-myGamePiece = new component(10, 10, "red", 10, 120);
-myGameArea.start()
-// cameraOn()
+var myGamePiece = new component(10, 10, "red", 10, 120);
+var myObstacles = [];
+myGameArea.start();
+cameraOn()
